@@ -1,5 +1,11 @@
 import { createRoot } from 'react-dom/client';
+import { TimelineBlock } from './components/TimelineBlock/TimelineBlock';
+import { slices } from './data';
+
+import './styles/_variables.scss'; 
 
 createRoot(document.getElementById('root')!).render(
-  <h1 style={{textAlign:'center'}}>Hello, project started!</h1>
+  <>
+    <TimelineBlock slices={slices} />
+  </>
 );

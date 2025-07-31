@@ -1,0 +1,112 @@
+@use '../../styles/variables' as *;
+
+/* ===== базовые ===== */
+$orbit-size : 360px;                    // диаметр круга
+$pin-radius : 3px;                      // радиус точки
+$label-gap  : 28px;                     // на сколько выносить подпись
+
+.timeline {
+  font-family: $font;
+  padding: 40px 0 0;
+  position: relative;
+
+  .tl-title { font: 600 32px/1 $font; color: #5b6ea8; margin-bottom: 24px; }
+
+  /* ─── окружность ─── */
+  .orbit {
+    width: $orbit-size; height: $orbit-size; margin: 0 auto;
+    border: 1px solid $gray; border-radius: 50%; position: relative;
+    overflow: visible;
+  }
+
+  /* слой, который крутим */
+  .carousel { position: absolute; inset: 0; transform-origin: 50% 50%; }
+
+  /* pin = точка + подпись */
+  .pin {
+    position: absolute; top: 50%; left: 50%;
+    transform-origin: 0 0;          /* важно для вращения */
+
+    /* сама точка */
+    .dot {
+      width: $pin-radius*2; height: $pin-radius*2;
+      border-radius: 50%; background: $gray; display: block;
+      position: relative;
+      transition: background .25s;
+
+      &::after {                      /* кольцо */
+        content:'';
+        position:absolute; inset:-8px;
+        border-radius:50%;
+        border:1px solid $blue;
+        transform:scale(.4); opacity:0;
+        transition:transform .25s, opacity .25s;
+      }
+    }
+
+    &:hover .dot::after { opacity:1; transform:scale(1); }
+
+    /* подпись */
+    .label {
+      position: absolute;
+      top: calc(-#{$label-gap}); left: 50%;
+      transform: translateX(-50%);
+      display: flex; align-items: center; gap: 6px;
+      font: 14px/1 $font; color:#5b6ea8; white-space:nowrap;
+
+      .num {
+        width: 22px; height: 22px;
+        border:1px solid currentColor; border-radius:50%;
+        display:flex; align-items:center; justify-content:center;
+        font: 600 12px/1 $font; background:#fff;
+      }
+    }
+
+    &.active .dot {
+      background:$blue;
+      &::after { opacity:1; transform:scale(1); }
+    }
+  }
+
+  /* ─── большие цифры ─── */
+  .years {
+    margin-top:32px; display:flex; justify-content:center; gap:32px;
+    font:700 clamp(48px,8vw,120px)/1 $font;
+
+    span:first-child{color:$blue;} span:last-child{color:$pink;}
+  }
+
+  /* ─── нав-бар (слева) ─── */
+  .slice-nav{
+    position:absolute; left:0; top:calc($orbit-size + 72px); /* под цифрами */
+    display:flex; align-items:center; gap:12px;
+    font:600 14px/1 $font; color:#5b6ea8;
+
+    button{
+      width:26px;height:26px;border-radius:50%;border:1px solid $gray;
+      background:#fff;cursor:pointer;font:600 16px/24px $font;
+      transition:background .25s;
+      &:hover{background:$gray;}
+    }
+  }
+
+  /* ─── события ─── */
+  .events{
+    margin-top:64px; display:flex; align-items:center; position:relative;
+
+    .ev-btn{
+      width:34px;height:34px;border-radius:50%;border:1px solid $gray;
+      background:#fff;font:600 18px/32px $font;cursor:pointer;
+      transition:background .25s; flex:0 0 auto;
+      &:hover{background:$gray;}
+    }
+
+    .swiper{ flex:1 1 auto; overflow:visible;
+      .swiper-slide{
+        max-width:300px;
+        h3{color:$blue;margin-bottom:6px;}
+        p {color:#5b6ea8;font:14px/1.4 $font;}
+      }
+    }
+  }
+}
