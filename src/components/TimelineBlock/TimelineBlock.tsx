@@ -1,3 +1,5 @@
+/* TimelineBlock.tsx
+   ───────────────────────────────────────────────────────── */
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation } from 'swiper/modules';
@@ -14,33 +16,42 @@ SwiperCore.use([Navigation]);
 interface Props { slices: TimeSlice[] }
 
 export const TimelineBlock: React.FC<Props> = ({ slices }) => {
+  /* ---------------- state / refs ---------------- */
   const [active, setActive] = useState(0);
 
-  /* refs */
-  const carouselRef = useRef<HTMLDivElement>(null);   // слой с точками
-  const yearsRef    = useRef<HTMLDivElement>(null);   // пара больших лет
+  const carouselRef = useRef<HTMLDivElement>(null);   // слой-карусель с точками
+  const yearsRef    = useRef<HTMLDivElement>(null);   // «1980  1986»
 
-  /* угол между точками */
-  const sliceAngle = 360 / slices.length;
+  /* ---------------- geometry -------------------- */
+  const sliceAngle  = 360 / slices.length;
+  const ORBIT_SIZE  = 360;        // ⌀ окружности
+  const ADJUST      = 3;          // чуть дальше, чем радиус
+  const R           = ORBIT_SIZE / 2 + ADJUST;
 
-  /* уникальный id для стрелок Swiper-а */
+  /* ---------------- swiper id ------------------- */
   const uid = useMemo(() => Math.random().toString(36).slice(2, 10), []);
 
-  const ORBIT_SIZE = 360;   
-  const ADJUST = 3;                       // на сколько увеличить радиус
-  const R = ORBIT_SIZE / 2 + ADJUST
-
-  /* вращаем карусель при смене active */
+  /* ---------------- rotation animation ---------- */
   useEffect(() => {
-    if (!carouselRef.current) return;
-    gsap.to(carouselRef.current, {
-      rotate: -sliceAngle * active,
+    const el = carouselRef.current;
+    if (!el) return;
+
+    const toDeg = -sliceAngle * active;                    // целевой угол
+
+    gsap.to(el, {
+      rotation: toDeg,
       duration: .6,
-      ease: 'power3.inOut'
+      ease: 'power3.inOut',
+
+      /* ⇣ при каждом кадре пишем «встречный» угол в CSS-переменную */
+      onUpdate() {
+        const cur = gsap.getProperty(el, 'rotation') as number;
+        el.style.setProperty('--rot', `${-cur}deg`);       // «минус»!
+      }
     });
   }, [active, sliceAngle]);
 
-  /* лёгкая анимация фигур */
+  /* лёгкая смена крупных лет */
   useEffect(() => {
     if (!yearsRef.current) return;
     gsap.fromTo(
@@ -50,60 +61,74 @@ export const TimelineBlock: React.FC<Props> = ({ slices }) => {
     );
   }, [active]);
 
-  /* переключатели окружности */
+  /* ---------------- helpers --------------------- */
   const prev = () => setActive(a => (a - 1 + slices.length) % slices.length);
   const next = () => setActive(a => (a + 1) % slices.length);
 
+  /* ================== render ==================== */
   return (
     <section className="timeline">
       <h2 className="tl-title">Исторические даты</h2>
 
-      {/* ───── ОКРУЖНОСТЬ ───── */}
+      {/* ───── окружность ───── */}
       <div className="orbit">
         <div ref={carouselRef} className="carousel">
-          {slices.map((slice, i) => (
-            <div
-              key={slice.id}
-              className={`pin${i === active ? ' active' : ''}`}
-              /* ⬇︎ единственная правка: -R вместо -160 */
-              style={{ transform: `rotate(${sliceAngle * i}deg) translateY(-${R}px)` }}
-              onClick={() => setActive(i)}
-            >
-              <span className="dot" />
-              {i === active && (
-                <span className="label">
+          {slices.map((slice, i) => {
+            const angle = sliceAngle * i;                 // собственный угол точки
+
+            return (
+              <div
+                key={slice.id}
+                className={`pin${i === active ? ' active' : ''}`}
+                style={{ transform: `rotate(${angle}deg) translateY(-${R}px)` }}
+                onClick={() => setActive(i)}
+              >
+                {/* точка + цифра (компенсируем оба вращения) */}
+                <span
+                  className="dot"
+                  style={{ transform: `rotate(calc(var(--rot) - ${angle}deg))` }}
+                >
                   <span className="num">{i + 1}</span>
-                  {slice.label}
                 </span>
-              )}
-            </div>
-          ))}
+
+                {/* подпись — только у выбранной */}
+                {i === active && (
+                  <span
+                    className="label"
+                    style={{ transform: `translateX(-50%) rotate(calc(var(--rot) - ${angle}deg))` }}
+                  >
+                    {slice.label}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
-
-      {/* ───── БОЛЬШИЕ ЛЕТА ───── */}
+      {/* ───── большие года ───── */}
       <div ref={yearsRef} className="years">
         <span>{slices[active].from}</span>
         <span>{slices[active].to}</span>
       </div>
-
-      {/* ───── НАВИГАЦИЯ ‹ 01/06 › ───── */}
+      {/* ───── нав-бар «‹ 01/06 ›» ───── */}
       <div className="slice-nav">
-        <button onClick={prev}>‹</button>
-        <span>{String(active + 1).padStart(2, '0')}/{String(slices.length).padStart(2, '0')}</span>
-        <button onClick={next}>›</button>
+        <span className="counter">
+          {String(active + 1).padStart(2, '0')}/{String(slices.length).padStart(2, '0')}
+        </span>
+        <div className="arrows">
+          <button onClick={prev}>‹</button>
+          <button onClick={next}>›</button>
+        </div>
       </div>
-
-      {/* ───── КАРУСЕЛЬ СОБЫТИЙ ───── */}
+      {/* ───── события внутри слайда ───── */}
       <div className="events">
         <button className={`ev-prev-${uid} ev-btn`}>‹</button>
-
         <Swiper
           className="swiper"
           slidesPerView="auto"
           spaceBetween={32}
           navigation={{ prevEl: `.ev-prev-${uid}`, nextEl: `.ev-next-${uid}` }}
-          key={slices[active].id}
+          key={slices[active].id}                           /* сброс позиции */
         >
           {slices[active].events.map(ev => (
             <SwiperSlide key={ev.year}>
@@ -112,7 +137,6 @@ export const TimelineBlock: React.FC<Props> = ({ slices }) => {
             </SwiperSlide>
           ))}
         </Swiper>
-
         <button className={`ev-next-${uid} ev-btn`}>›</button>
       </div>
     </section>
